@@ -7,19 +7,12 @@ set -euo pipefail
 #   ACPC-space diffusion reference (dwiref) using the QSIPrep-generated
 #   MNI->ACPC composite transform.
 #
-#   Outputs 5 masks per subject:
+#   Outputs 4 masks per subject:
 #     1. cerebellum + midbrain
 #     2. ICBM152
-#     3. lower cerebrum
-#     4. upper cerebrum
-#     5. cerebrum
+#     3. inferior cerebrum
+#     4. superior cerebrum
 #
-#   Output directory:
-#     derivatives/<qsiprep_version>/brain_coverage/sub-<ID>/masks/
-
-# Notes  : This version supports datasets with sessions and writes one CSV per
-#          session (ses-1 and ses-2). Subjects and their sessions are
-#          discovered directly from the qsiprep folder structure on disk.
 # =============================================================================
 
 # =============================================================================
@@ -61,17 +54,15 @@ CONFIG["icbm152_mask_file"]="${CONFIG[atlas_dir]}/mni_icbm152_nlin_asym_09c/mni_
 MASKS=(
   "MNI152NLin2009cAsym_cerebellum+midbrain.nii.gz"
   "__ICBM152__"
-  "MNI152NLin2009cAsym_lower_cerebrum.nii.gz"
-  "MNI152NLin2009cAsym_upper_cerebrum.nii.gz"
-  "MNI152NLin2009cAsym_cerebrum.nii.gz"
+  "MNI152NLin2009cAsym_inferior_cerebrum.nii.gz"
+  "MNI152NLin2009cAsym_superior_cerebrum.nii.gz"
 )
 
 declare -A OUTTAG=(
   ["MNI152NLin2009cAsym_cerebellum+midbrain"]="mni_cerebellum_and_midbrain_brain_coverage_mask"
   ["__ICBM152__"]="mni_icbm152_brain_coverage_mask"
-  ["MNI152NLin2009cAsym_lower_cerebrum"]="mni_lower_cerebrum_brain_coverage_mask"
-  ["MNI152NLin2009cAsym_upper_cerebrum"]="mni_upper_cerebrum_brain_coverage_mask"
-  ["MNI152NLin2009cAsym_cerebrum"]="mni_cerebrum_brain_coverage_mask"
+  ["MNI152NLin2009cAsym_inferior_cerebrum"]="mni_inferior_cerebrum_brain_coverage_mask"
+  ["MNI152NLin2009cAsym_superior_cerebrum"]="mni_superior_cerebrum_brain_coverage_mask"
 )
 
 # =============================================================================

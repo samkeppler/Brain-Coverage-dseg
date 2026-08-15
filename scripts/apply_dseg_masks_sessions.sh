@@ -34,17 +34,15 @@ CONFIG=(
 # =============================================================================
 
 MASKS=(
-  "MNI152NLin2009cAsym_upper_cerebrum.nii.gz"
-  "MNI152NLin2009cAsym_lower_cerebrum.nii.gz"
-  "MNI152NLin2009cAsym_cerebrum.nii.gz"
+  "MNI152NLin2009cAsym_superior_cerebrum.nii.gz"
+  "MNI152NLin2009cAsym_inferior_cerebrum.nii.gz"
   "MNI152NLin2009cAsym_cerebellum+midbrain.nii.gz"
   "__ICBM152__"
 )
 
 declare -A OUTTAG=(
-  ["MNI152NLin2009cAsym_upper_cerebrum"]="mni_upper_cerebrum_brain_coverage_mask"
-  ["MNI152NLin2009cAsym_lower_cerebrum"]="mni_lower_cerebrum_brain_coverage_mask"
-  ["MNI152NLin2009cAsym_cerebrum"]="mni_cerebrum_brain_coverage_mask"
+  ["MNI152NLin2009cAsym_superior_cerebrum"]="mni_superior_cerebrum_brain_coverage_mask"
+  ["MNI152NLin2009cAsym_inferior_cerebrum"]="mni_inferior_cerebrum_brain_coverage_mask"
   ["MNI152NLin2009cAsym_cerebellum+midbrain"]="mni_cerebellum_and_midbrain_brain_coverage_mask"
   ["__ICBM152__"]="mni_icbm152_brain_coverage_mask"
 )

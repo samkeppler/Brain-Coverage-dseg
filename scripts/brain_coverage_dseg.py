@@ -37,9 +37,8 @@ CONFIG = {
     # Ordered mask list for deterministic output column order
     "mask_templates": OrderedDict([
         ("icbm152", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_icbm152_brain_coverage_mask.nii.gz"),
-        ("cerebrum", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_cerebrum_brain_coverage_mask.nii.gz"),
-        ("upper_cerebrum", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_upper_cerebrum_brain_coverage_mask.nii.gz"),
-        ("lower_cerebrum", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_lower_cerebrum_brain_coverage_mask.nii.gz"),
+        ("superior_cerebrum", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_superior_cerebrum_brain_coverage_mask.nii.gz"),
+        ("inferior_cerebrum", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_inferior_cerebrum_brain_coverage_mask.nii.gz"),
         ("cerebellum_and_midbrain", "{braincov_root}/{subj}/masks/{subj}_space-ACPC_mni_cerebellum_and_midbrain_brain_coverage_mask.nii.gz"),
     ]),
 
