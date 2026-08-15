@@ -27,13 +27,6 @@ All scripts live in `scripts/`. Every script has a session-friendly
 qsiprep directory structure and writes one output CSV per session. Use
 whichever variant matches your dataset's directory structure.
 
-| Script | Dataset structure | Stage |
-|---|---|---|
-| `apply_dseg_masks.sh` | No sessions (`sub-<ID>/`) | 1: mask transformation |
-| `apply_dseg_masks_sessions.sh` | With sessions (`sub-<ID>/ses-<N>/`) | 1: mask transformation |
-| `brain_coverage_dseg.py` | No sessions | 2: coverage calculation |
-| `brain_coverage_dseg_sessions.py` | With sessions | 2: coverage calculation |
-
 ## Mask Transformation Preprocessing
 
 `apply_dseg_masks.sh` / `apply_dseg_masks_sessions.sh` transform a set of
