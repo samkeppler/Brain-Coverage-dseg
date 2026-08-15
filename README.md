@@ -1,86 +1,139 @@
+# Brain Coverage QC for Diffusion MRI
+
+This repository implements a two-stage workflow for computing brain
+coverage metrics from qsiprep-preprocessed diffusion MRI data.
+
+> Portions of the coverage-calculation scripts are adapted from DCAN-Labs'
+> `brain_coverage` project — see [ATTRIBUTION.md](ATTRIBUTION.md) for
+> the source and full list of modifications.
+
 ## Conceptual Overview
 
-This repository implements a two-stage workflow for computing brain coverage metrics from qsiprep-preprocessed diffusion MRI data.
+First, a preprocessing script applies MNI-space anatomical masks (ICBM152,
+superior cerebrum, inferior cerebrum, and cerebellum + midbrain) to each
+subject's native ACPC diffusion space, producing subject-specific,
+region-level masks aligned to the diffusion data.
 
-First, a preprocessing script applies MNI-space anatomical masks (e.g., cerebrum, cerebellum, brainstem) to each subject’s native ACPC diffusion space. The specific masks used in this step are uploaded in this repository in the masks folder. This step produces subject-specific, region-level brain masks that are spatially aligned to the diffusion data.
+Second, a coverage computation script uses those subject-specific masks to
+quantify what proportion of each region is covered by the diffusion data.
+Coverage is computed by thresholding the mean diffusion image, applying the
+region mask, and calculating the percentage of nonzero voxels relative to
+the full mask extent.
 
-Second, a coverage computation script uses these subject-specific masks to quantify the proportion of each region that is covered by the diffusion data. Coverage is computed by thresholding the mean diffusion image, applying the region mask, and calculating the percentage of nonzero voxels relative to the
-full mask extent.
+## Scripts
 
-Together, these scripts enable reproducible, region-specific brain coverage quality control for diffusion MRI datasets.
+All scripts live in `scripts/`. Every script has a session-friendly
+`_sessions` counterpart, which auto-discovers subjects/sessions from the
+qsiprep directory structure and writes one output CSV per session. Use
+whichever variant matches your dataset's directory structure.
 
-## Mask Transformation Preprocessing (`apply_dseg_masks.sh`)
+| Script | Dataset structure | Stage |
+|---|---|---|
+| `apply_dseg_masks.sh` | No sessions (`sub-<ID>/`) | 1: mask transformation |
+| `apply_dseg_masks_sessions.sh` | With sessions (`sub-<ID>/ses-<N>/`) | 1: mask transformation |
+| `brain_coverage_dseg.py` | No sessions | 2: coverage calculation |
+| `brain_coverage_dseg_sessions.py` | With sessions | 2: coverage calculation |
 
-The script `apply_mni_masks.sh` is a required preprocessing step for the brain coverage analysis. Its purpose is to transform a set of anatomical masks defined
-in MNI152NLin2009cAsym space into each subject’s native ACPC diffusion space.
+## Mask Transformation Preprocessing
 
-  ### What the script does
+`apply_dseg_masks.sh` / `apply_dseg_masks_sessions.sh` transform a set of
+anatomical masks defined in MNI152NLin2009cAsym space into each subject's
+native ACPC diffusion space. This is a required preprocessing step for the
+coverage calculation below.
 
-  For each subject, the script:
+### What the scripts do
 
-  1. Locates the QSIPrep-provided composite transform from MNI152NLin2009cAsym space to subject ACPC space.
-  2. Identifies the subject’s diffusion reference image (`*_space-ACPC_dwiref.nii.gz`) to define the target grid.
-  3. Applies the MNI→ACPC transform to each input mask using`antsApplyTransforms` (via the `antsx/ants:2.5.3` Docker container).
-  4. Resamples each mask into the subject’s diffusion reference space using nearest-neighbor interpolation to preserve label integrity.
-  5. Writes subject-specific, ACPC-space mask files into the QSIPrep `dwi/` directory.
+For each subject (and, in the sessions variant, each session), the script:
 
-  This process is repeated for multiple anatomical masks (e.g., cerebrum, cerebellum, brainstem), enabling region-specific coverage metrics downstream.
+1. Locates the QSIPrep-provided composite transform from
+   MNI152NLin2009cAsym space to subject ACPC space.
+2. Identifies the subject's diffusion reference image
+   (`*_space-ACPC_dwiref.nii.gz`) to define the target grid.
+3. Applies the MNI→ACPC transform to each input mask using
+   `antsApplyTransforms` (via the `antsx/ants:2.5.3` Docker container).
+4. Resamples each mask into the subject's diffusion reference space using
+   nearest-neighbor interpolation to preserve label integrity.
+5. Writes subject-specific, ACPC-space mask files into the
+   `brain_coverage/` output directory.
 
-  ### Inputs
+This is repeated for each of the four anatomical masks (ICBM152, superior
+cerebrum, inferior cerebrum, and cerebellum + midbrain).
 
-  - A list of subject identifiers (`sj_list.txt`)
-  - MNI-space anatomical masks stored in the `masks/` directory
-  - QSIPrep derivatives containing:
-  - MNI→ACPC composite transforms
-  - ACPC-space diffusion reference images
+### Inputs
 
-  ### Outputs
+- A list of subject identifiers (`sj_list.txt`) — single-session variant
+  only; the sessions variant discovers subjects and sessions directly from
+  the qsiprep output directory structure
+- MNI-space anatomical mask templates, stored in the `masks/` directory of
+  this repository
+- QSIPrep derivatives containing the MNI→ACPC composite transform and
+  ACPC-space diffusion reference image for each subject
 
-  For each subject and each mask, the script generates an ACPC-space mask with a deterministic filename of the form:sub-<ID>space-ACPC<region>_brain_coverage_mask.nii.gz. 
-  These outputs are used directly by the coverage computation script.
+### Outputs
 
-  ### Notes
+For each subject (and session) and each mask, the script generates an
+ACPC-space mask with a deterministic filename of the form:
 
-  - The script is designed to be idempotent: mask generation is skipped if the
-  output file already exists.
-  - Nearest-neighbor interpolation is used to avoid partial-volume artifacts in
-  binary or label masks.
-  - The script assumes QSIPrep-compliant directory and filename conventions.
+```
+sub-<ID>_space-ACPC_<region>_brain_coverage_mask.nii.gz
+```
 
-## Brain Coverage Calculation (brain_coverage_dseg.py)
+where `<region>` is one of: `mni_icbm152`, `mni_superior_cerebrum`,
+`mni_inferior_cerebrum`, `mni_cerebellum_and_midbrain`.
 
-  ### Attribution:
-  - This script contains code adapted from the advanced-brain-coverage.py script from DCAN-Labs `brain_coverage` project:
-  - Upstream source: https://github.com/DCAN-Labs/brain_coverage
-  
-  ### Modifications from the upstream script include:
-  1. Imaging modality change (BOLD fMRI → DWI)
-     - The upstream script computes brain coverage for task-based BOLD fMRI images (*_task-*_run-*_bold.nii.gz).
-     - This implementation operates on qsiprep-preprocessed diffusion data (*_space-ACPC_desc-preproc_dwi.nii.gz).
-     - Coverage is computed once per subject rather than per task/run.
-  2. Configuration-driven execution
-     - The upstream script is fully CLI-driven using argparse.
-     - This implementation replaces CLI arguments with a centralized CONFIG block specifying dataset paths,qsiprep version, output locations, and runtime options.
-     - This change favors reproducibility and dataset-specific deployment over general-purpose CLI flexibility.
-  3. Removal of participants.tsv read/write logic
-     - The upstream script reads and updates a BIDS participants.tsv file, adding multiple bc_<task>_run-XXcolumns.
-     - This implementation does not modify participants.tsv. Output is written to a standalone QC TSV containing only participant_id and a single brain coverage metric.
-  4. Simplified subject handling
-     - The upstream script supports explicit subject and session selection, wildcard matching, and multi-session datasets.
-     - This implementation removes user-specified wildcard filtering and instead uses a fixed file discovery
-       pattern to automatically discover qsiprep-preprocessed DWI outputs. It specifically searches for files
-       matching: *_dir-*_space-ACPC_desc-preproc_dwi.nii.gz
-  5. Subject-specific ACPC-space mask usage
-     - The upstream script accepts an arbitrary MNI mask at runtime.
-     - This implementation uses a subject-specific ACPC-space brain coverage mask with a deterministic filename
-       derived from the subject ID. This ensures spatial alignment between the diffusion data and the mask.
-  6. Refactored path and intermediate file management
-     - All filesystem paths are centralized in the CONFIG block. Intermediate files are written to a dataset
-       specific QC working directory rather than a generic temporary location.
-     - Intermediate files are automatically removed unless explicitly retained.
-  7. Simplified output metric
-     - The upstream script produces task- and run-specific coverage columns. This implementation produces a single subject-level coverage value (brain_coverage), reflecting
-       diffusion brain coverage rather than task-level fMRI coverage.
-  8. Script renaming
-     - The script has been renamed from the upstream naming convention to brain_coverage_dseg.py to reflect its
-       diffusion-specific scope and segmentation-based masking.
+In the sessions variant, these are written under
+`brain_coverage/sub-<ID>/ses-<N>/masks/`; in the single-session variant,
+under `brain_coverage/sub-<ID>/masks/`. These outputs are used directly by
+the coverage computation scripts.
+
+### Notes
+
+- Existing output files are overwritten on rerun.
+- Nearest-neighbor interpolation is used to avoid partial-volume artifacts
+  in binary or label masks.
+- The scripts assume QSIPrep-compliant directory and filename conventions.
+- Requires Docker (for `antsApplyTransforms`).
+
+## Brain Coverage Calculation
+
+`brain_coverage_dseg.py` / `brain_coverage_dseg_sessions.py` compute, for
+each subject (and session), the percentage of each region mask covered by
+nonzero voxels in the subject's mean preprocessed diffusion image.
+
+### What the scripts do
+
+For each subject (and, in the sessions variant, each session), the script:
+
+1. Locates the qsiprep-preprocessed DWI file
+   (`*_space-ACPC_desc-preproc_dwi.nii.gz`, with wildcard fallback if the
+   deterministic filename isn't found).
+2. Converts the DWI to float, computes its mean image over time, and
+   binarizes it.
+3. Applies each of the four ACPC-space region masks (produced by the
+   corresponding `apply_dseg_masks*.sh` script) to the binarized mean
+   image.
+4. Calculates coverage as the percentage of nonzero voxels in the masked
+   image relative to the full extent of the region mask.
+
+### Outputs
+
+- **Single-session variant**: one CSV,
+  `brain_coverage/results/brain_coverage_dseg_masks.csv`, with columns
+  `participant_id`, `coverage_icbm152`, `coverage_superior_cerebrum`,
+  `coverage_inferior_cerebrum`, `coverage_cerebellum_and_midbrain`.
+- **Sessions variant**: one CSV per session,
+  `brain_coverage/results/brain_coverage_dseg_masks_ses-1.csv`,
+  `..._ses-2.csv`, etc., with the same columns.
+
+### Requirements
+
+- Python 3 with `pandas`, `nibabel`, and `nipype`
+- FSL (accessed via `nipype.interfaces.fsl`)
+
+### Notes
+
+- Intermediate files are written to a per-dataset temporary working
+  directory and removed after each subject unless `keep_intermediates` is
+  set to `True` in `CONFIG`.
+- The DWI filename prefix can be overridden via the `DWI_PREFIX`
+  environment variable without editing the script.
