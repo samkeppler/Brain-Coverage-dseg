@@ -1,7 +1,7 @@
 # Brain Coverage QC for Diffusion MRI
 
-This repository implements a two-stage workflow for computing brain
-coverage metrics from qsiprep-preprocessed diffusion MRI data.
+This repository implements a two-stage workflow for computing quantitative brain
+coverage metrics from qsiprep-preprocessed diffusion MRI data for quality control.
 
 > Portions of the coverage-calculation scripts are adapted from DCAN-Labs'
 > `brain_coverage` project — see [ATTRIBUTION.md](ATTRIBUTION.md) for
