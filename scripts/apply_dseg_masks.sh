@@ -22,16 +22,14 @@ set -euo pipefail
 declare -A CONFIG
 CONFIG=(
   # Core identifier
-  ["dataset"]="abideii-bni"
-  ["qsiprep_version"]="qsiprep-1.0.0rc2"
+  ["dataset_name"]="abideii-bni"
 
-  # Base paths 
-  ["base_dir"]="/mnt/synapse/neurocat-lab/R21MH133229_asd_dmri_lifespan/datasets_v1.0"
+  # Base paths
+  ["base_path"]="/mnt/synapse/neurocat-lab/R21MH133229_asd_dmri_lifespan/datasets_v1.0"
   ["atlas_dir"]="/mnt/synapse/neurocat-lab/atlases"
 
   # Derived paths
   ["bids_dir"]=""              # set after declaration
-  ["sj_list_file"]=""          # set after declaration
   ["mni_masks_dir"]=""         # set after declaration
   ["icbm152_mask_file"]=""     # set after declaration
 
@@ -42,8 +40,7 @@ CONFIG=(
 )
 
 # Resolve derived paths
-CONFIG["bids_dir"]="${CONFIG[base_dir]}/${CONFIG[dataset]}"
-CONFIG["sj_list_file"]="${CONFIG[bids_dir]}/code/sj_list.txt"
+CONFIG["bids_dir"]="${CONFIG[base_path]}/${CONFIG[dataset_name]}"
 CONFIG["mni_masks_dir"]="${CONFIG[atlas_dir]}/MNI152NLin2009cAsym_res-01_dseg_masks"
 CONFIG["icbm152_mask_file"]="${CONFIG[atlas_dir]}/mni_icbm152_nlin_asym_09c/mni_icbm152_t1_tal_nlin_asym_09c_mask.nii"
 
@@ -75,7 +72,7 @@ die () {
 }
 
 qsiprep_dir () {
-  echo "${CONFIG[bids_dir]}/derivatives/${CONFIG[qsiprep_version]}"
+  echo "${CONFIG[bids_dir]}/derivatives/qsiprep-1.0.0rc2"
 }
 
 apply_xfm_mni2acpc_mask_docker () {
@@ -123,6 +120,17 @@ apply_xfm_mni2acpc_mask_docker () {
   echo "Wrote: $out_file"
 }
 
+get_subject_list () {
+  local qsiprep_dir_path="$1"
+  local subj_dir base
+
+  for subj_dir in "${qsiprep_dir_path}"/sub-*/; do
+    [[ -d "$subj_dir" ]] || continue
+    base="$(basename "$subj_dir")"
+    echo "${base#sub-}"
+  done | sort
+}
+
 find_dwiref () {
   local qsiprep_dir_path="$1"
   local subj="$2"
@@ -153,14 +161,15 @@ main () {
 
   [[ -d "${CONFIG[bids_dir]}" ]] || die "Missing bids_dir"
   [[ -d "$qsiprep_dir_path" ]] || die "Missing qsiprep_dir"
-  [[ -f "${CONFIG[sj_list_file]}" ]] || die "Missing subject list"
 
   local out_root="${qsiprep_dir_path}/brain_coverage"
 
+  local subjects
+  subjects="$(get_subject_list "$qsiprep_dir_path")"
+  [[ -n "$subjects" ]] || die "No sub-* directories found under $qsiprep_dir_path"
+
   while read -r subj; do
-    subj="${subj//[$'\r\t ']/}"
     [[ -z "$subj" ]] && continue
-    subj="${subj#sub-}"
 
     local ref_file
     ref_file="$(find_dwiref "$qsiprep_dir_path" "$subj")"
@@ -192,7 +201,7 @@ main () {
         "${CONFIG[interp]}"
     done
 
-  done < "${CONFIG[sj_list_file]}"
+  done <<< "$subjects"
 }
 
 main "$@"
