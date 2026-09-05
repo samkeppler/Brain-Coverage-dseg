@@ -1,5 +1,4 @@
 # Brain Coverage QC for Diffusion MRI
-<<<<<<< HEAD
 
 ## About
 
